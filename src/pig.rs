@@ -1,7 +1,8 @@
-use bevy::prelude::*;
+use bevy::{ecs::reflect, prelude::*};
 use crate::{Money, Player};
 
-#[derive(Component)]
+#[derive(Component, Default, Reflect)]
+#[reflect(Component)]
 pub struct Pig{
     pub lifetime: Timer,
 }
@@ -60,6 +61,7 @@ fn pig_lifetime(
 pub struct PigPlugin;
 impl Plugin for PigPlugin{
     fn build(&self, app: &mut App){
-        app.add_systems(Update,(spwan_pig, pig_lifetime));
+        app.add_systems(Update,(spwan_pig, pig_lifetime))
+        .register_type::<Pig>();
     }
 }

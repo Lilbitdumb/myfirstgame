@@ -1,6 +1,9 @@
+use bevy::input::common_conditions::input_toggle_active;
 use bevy::prelude::*;
 use bevy::input::keyboard::KeyCode;
 use bevy::render::camera::ScalingMode;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_inspector_egui::InspectorOptions;
 use pig::PigPlugin;
 
 mod pig;
@@ -20,6 +23,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         },
         Player {speed: 100.0},
+        Name::new("Player"),
     ));
 }
 
@@ -46,8 +50,10 @@ fn player_movement(
     }
 }
 
-#[derive(Component)]
+#[derive(Component, InspectorOptions, Default, Reflect)]
+#[reflect(Component)]
 pub struct Player {
+    #[inspector(min = 0.0)]
     speed: f32
 }
 
@@ -69,11 +75,15 @@ fn main() {
                 ..default()
             })
           .build(),
+        )
+        .add_plugins(
+            WorldInspectorPlugin::default().run_if(input_toggle_active(true, KeyCode::Escape)),
         )   
         .insert_resource(Money(100.0))
         .add_plugins(PigPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update,player_movement)
+        .register_type::<Player>()
         .run();
 }
 
