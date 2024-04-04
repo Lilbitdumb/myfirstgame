@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 use bevy::input::keyboard::KeyCode;
-use bevy::render::camera::{self, ScalingMode};
+use bevy::render::camera::ScalingMode;
+use pig::PigPlugin;
 
+mod pig;
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let mut camera = Camera2dBundle::default();
@@ -19,57 +21,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
         Player {speed: 100.0},
     ));
-}
-
-fn spwan_pig(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    input: Res<ButtonInput<KeyCode>>,
-    mut money: ResMut<Money>,
-    player: Query<&Transform, With<Player>>,    
-){
-    if !input.just_pressed(KeyCode::Space){        
-        return;    
-    }
-
-    let player_transform = player.single();
-
-    if money.0 >= 10.0{
-        money.0 -= 10.0;
-        info!("Spent $10 on a pig, remaining money: ${:?}",money.0)
-    }
-
-    let texture = asset_server.load("pig.png");
-
-    commands.spawn((
-        SpriteBundle {
-            texture,
-            transform: *player_transform,
-            ..default()            
-        },
-        Pig {
-            lifetime: Timer::from_seconds(2.0, TimerMode::Once),
-        },
-    ));
-}
-
-fn pig_lifetime(
-    mut commands: Commands,
-    time: Res<Time>,
-    mut pigs: Query<(Entity, &mut Pig)>,
-    mut money: ResMut<Money>,
-){
-    for (pig_entity, mut pig) in &mut pigs{
-        pig.lifetime.tick(time.delta());
-
-        if pig.lifetime.finished(){
-            money.0 += 15.0;
-
-            commands.entity(pig_entity).despawn();
-
-            info!("Pig solf for $15! Current Money: {:?}", money.0);
-        }
-    }
 }
 
 fn player_movement(
@@ -103,11 +54,6 @@ pub struct Player {
 #[derive(Resource)]
 pub struct Money(pub f32);
 
-#[derive(Component)]
-pub struct Pig{
-    pub lifetime: Timer,
-}
-
 fn main() {
     App::new()
         .add_plugins(
@@ -125,8 +71,9 @@ fn main() {
           .build(),
         )   
         .insert_resource(Money(100.0))
+        .add_plugins(PigPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update,(player_movement,spwan_pig,pig_lifetime))
+        .add_systems(Update,player_movement)
         .run();
 }
 
