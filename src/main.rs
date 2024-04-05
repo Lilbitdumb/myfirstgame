@@ -5,8 +5,10 @@ use bevy::render::camera::ScalingMode;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_inspector_egui::InspectorOptions;
 use pig::PigPlugin;
+use ui::GameUI;
 
 mod pig;
+mod ui;
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let mut camera = Camera2dBundle::default();
@@ -80,7 +82,7 @@ fn main() {
             WorldInspectorPlugin::default().run_if(input_toggle_active(true, KeyCode::Escape)),
         )   
         .insert_resource(Money(100.0))
-        .add_plugins(PigPlugin)
+        .add_plugins((PigPlugin,GameUI))
         .add_systems(Startup, setup)
         .add_systems(Update,player_movement)
         .register_type::<Player>()
