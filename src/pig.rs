@@ -1,5 +1,13 @@
-use bevy::{ecs::reflect, prelude::*};
+use bevy::prelude::*;
 use crate::{Money, Player};
+
+#[derive(Component)]
+pub struct PigParent;
+
+fn spawn_pig_parent(mut commands: Commands){
+    commands.spawn((SpatialBundle::default(), PigParent, Name::new("PigParent")));
+}
+
 
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
@@ -13,12 +21,14 @@ fn spwan_pig(
     input: Res<ButtonInput<KeyCode>>,
     mut money: ResMut<Money>,
     player: Query<&Transform, With<Player>>,    
+    parent: Query<Entity, With <PigParent>>,
 ){
     if !input.just_pressed(KeyCode::Space){        
         return;    
     }
 
     let player_transform = player.single();
+    let parent = parent.single();
 
     if money.0 >= 10.0{
         money.0 -= 10.0;
@@ -27,16 +37,19 @@ fn spwan_pig(
 
     let texture = asset_server.load("pig.png");
 
-    commands.spawn((
-        SpriteBundle {
-            texture,
-            transform: *player_transform,
-            ..default()            
-        },
-        Pig {
-            lifetime: Timer::from_seconds(2.0, TimerMode::Once),
-        },
-    ));
+    commands.entity(parent).with_children(|commands|{
+        commands.spawn((
+            SpriteBundle {
+                texture,
+                transform: *player_transform,
+                ..default()            
+            },
+            Pig {
+                lifetime: Timer::from_seconds(2.0, TimerMode::Once),
+            },
+            Name::new("Pig"),
+        ));        
+    });
 }
 
 fn pig_lifetime(
@@ -44,16 +57,20 @@ fn pig_lifetime(
     time: Res<Time>,
     mut pigs: Query<(Entity, &mut Pig)>,
     mut money: ResMut<Money>,
+    parent: Query<Entity, With <PigParent>>,
 ){
-    for (pig_entity, mut pig) in &mut pigs{
+    let parent = parent.single();
+
+    for (pig_entity, mut pig) in &mut pigs {
         pig.lifetime.tick(time.delta());
 
-        if pig.lifetime.finished(){
+        if pig.lifetime.finished() {
             money.0 += 15.0;
 
+            commands.entity(parent).remove_children(&[pig_entity]);
             commands.entity(pig_entity).despawn();
 
-            info!("Pig solf for $15! Current Money: {:?}", money.0);
+            info!("Pig sold for $15! Current Money: ${:?}", money.0);
         }
     }
 }
@@ -61,7 +78,8 @@ fn pig_lifetime(
 pub struct PigPlugin;
 impl Plugin for PigPlugin{
     fn build(&self, app: &mut App){
-        app.add_systems(Update,(spwan_pig, pig_lifetime))
+        app.add_systems(Startup,spawn_pig_parent)
+        .add_systems(Update,(spwan_pig, pig_lifetime))
         .register_type::<Pig>();
     }
 }
